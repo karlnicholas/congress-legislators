@@ -6,7 +6,16 @@ import java.util.Map;
 
 import com.esotericsoftware.yamlbeans.YamlReader;
 
-
+/**
+ * 
+ * @author Karl Nicholas
+ * 
+ * This program traverses the congress-legislators files and finds all unique fields
+ * and dumps them to Stdout. It doesn't handle fec and bioguide_previous very well, 
+ * but the are ArrayList's of Strings. I had a version that did so but accidently
+ * deleted it. Oh well. The output was used to create the Java Beans. 
+ *
+ */
 public class ShowGovTrackHierarchy
 {
     @SuppressWarnings({ "unchecked", "rawtypes" })
