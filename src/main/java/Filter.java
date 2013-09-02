@@ -23,6 +23,8 @@ import filter.GovTrackFilter;
  * each filter is applied to the results of the last filter
  * giving a AND result. Each filter removes from the list 
  * of GovTrackEntries.   
+ * 
+ * Nothing more than a test update.
  *
  */
 public class Filter {
