@@ -13,5 +13,5 @@ import model.*;
  */
 public interface GovTrackFilter
 {
-    void doFilter(ArrayList<GovTrackEntry> p0, GovTrackEntry p1);
+    void doFilter(ArrayList<GovTrackEntry> listAcceptedEntries, GovTrackEntry currentEntry);
 }

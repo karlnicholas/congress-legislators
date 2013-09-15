@@ -80,7 +80,7 @@ public class ExportPartiesByRegion
         // strip out the GovTrackTerms from the filtered results. They have all that is needed
         ArrayList<GovTrackTerm> listTerms = new ArrayList<GovTrackTerm>();
         for (GovTrackEntry entry : listAcceptedEntries) {
-            for (GovTrackTerm term : entry.getListGovTrackTerms()) {
+            for (GovTrackTerm term : entry.getTerms()) {
                 listTerms.add(term);
             }
         }

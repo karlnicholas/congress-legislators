@@ -101,51 +101,51 @@ public class GovTrackEntry
         return false;
     }
 
-    public GovTrackId getGovTrackId() {
+    public GovTrackId getId() {
 		return govTrackId;
 	}
 
-	public void setGovTrackId(GovTrackId govTrackId) {
+	public void setId(GovTrackId govTrackId) {
 		this.govTrackId = govTrackId;
 	}
 
-	public GovTrackName getGovTrackName() {
+	public GovTrackName getName() {
 		return govTrackName;
 	}
 
-	public void setGovTrackName(GovTrackName govTrackName) {
+	public void setName(GovTrackName govTrackName) {
 		this.govTrackName = govTrackName;
 	}
 
-	public ArrayList<GovTrackOtherName> getListGovTrackOtherNames() {
+	public ArrayList<GovTrackOtherName> getOther_names() {
 		return listGovTrackOtherNames;
 	}
 
-	public void setListGovTrackOtherNames(ArrayList<GovTrackOtherName> listGovTrackOtherNames) {
+	public void setOther_names(ArrayList<GovTrackOtherName> listGovTrackOtherNames) {
 		this.listGovTrackOtherNames = listGovTrackOtherNames;
 	}
 
-	public GovTrackBio getGovTrackBio() {
+	public GovTrackBio getBio() {
 		return govTrackBio;
 	}
 
-	public void setGovTrackBio(GovTrackBio govTrackBio) {
+	public void setBio(GovTrackBio govTrackBio) {
 		this.govTrackBio = govTrackBio;
 	}
 
-	public ArrayList<GovTrackTerm> getListGovTrackTerms() {
+	public ArrayList<GovTrackTerm> getTerms() {
 		return listGovTrackTerms;
 	}
 
-	public void setListGovTrackTerms(ArrayList<GovTrackTerm> listGovTrackTerms) {
+	public void setTerms(ArrayList<GovTrackTerm> listGovTrackTerms) {
 		this.listGovTrackTerms = listGovTrackTerms;
 	}
 
-	public ArrayList<GovTrackLeadershipRole> getListGovTrackLeadershipRoles() {
+	public ArrayList<GovTrackLeadershipRole> getLeadership_roles() {
 		return listGovTrackLeadershipRoles;
 	}
 
-	public void setListGovTrackLeadershipRoles(ArrayList<GovTrackLeadershipRole> listGovTrackLeadershipRoles) {
+	public void setLeadership_roles(ArrayList<GovTrackLeadershipRole> listGovTrackLeadershipRoles) {
 		this.listGovTrackLeadershipRoles = listGovTrackLeadershipRoles;
 	}
 

@@ -27,7 +27,7 @@ public class GovTrackDateFilter implements GovTrackFilter
     }
     
     public void doFilter(final ArrayList<GovTrackEntry> listAcceptedEntries, final GovTrackEntry currentEntry) {
-        for (GovTrackTerm term : currentEntry.getListGovTrackTerms()) {
+        for (GovTrackTerm term : currentEntry.getTerms()) {
             try {
                 Date termStart = GovTrackDateFilter.dformat.parse(term.getStart());
                 Date termEnd = GovTrackDateFilter.dformat.parse(term.getEnd());

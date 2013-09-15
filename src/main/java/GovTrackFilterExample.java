@@ -1,13 +1,13 @@
 import java.io.InputStreamReader;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Map;
 
-import model.GovTrackEntry;
+import model.*;
 
-import com.esotericsoftware.yamlbeans.YamlReader;
+import com.esotericsoftware.yamlbeans.*;
 
-import filter.GovTrackFieldFilter;
-import filter.GovTrackFilter;
+import filter.*;
 
 /**
  * 
@@ -43,38 +43,41 @@ public class GovTrackFilterExample
         }
 
         // read the legislators files into memory
-        YamlReader reader = new YamlReader(new InputStreamReader(GovTrackFilterExample.class.getResourceAsStream("legislators-historical.yaml")));
+        YamlReader reader = new YamlReader(new InputStreamReader(GovTrackFilterExample.class.getResourceAsStream("legislators-current.yaml")));
         ArrayList<Map<String, ?>> list = (ArrayList<Map<String, ?>>)reader.read();
         reader.close();
-        reader = new YamlReader(new InputStreamReader(GovTrackFilterExample.class.getResourceAsStream("legislators-current.yaml")));
-        list.addAll( (ArrayList<Map<String, ?>>)reader.read() );
-        reader.close();
+//        reader = new YamlReader(new InputStreamReader(GovTrackFilterExample.class.getResourceAsStream("legislators-current.yaml")));
+//        list.addAll( (ArrayList<Map<String, ?>>)reader.read() );
+//        reader.close();
 
         // create a result list
-        ArrayList<GovTrackEntry> listAcceptedEntries = new ArrayList<GovTrackEntry>();
+        ArrayList<GovTrackEntry> listAcceptedEntries= new ArrayList<>();
 
         // filter the legislators data
         for (Map<String, ?> map : list) {
             filter.doFilter(listAcceptedEntries, new GovTrackEntry(map));
         }
 
+/*        
         // print out each entry separately. 
         // somewhat cleaner than System.out.println(listAcceptedEntries);
         for ( GovTrackEntry govTrackEntry: listAcceptedEntries ) {
         	System.out.println(govTrackEntry);
         }
-
+*/
         /*
         YamlReader reader = new YamlReader(new InputStreamReader(GovTrackFilterExample.class.getResourceAsStream("test.yaml")));
         ArrayList<GovTrackEntry> listAcceptedEntries = (ArrayList<GovTrackEntry>) reader.read();
         reader.close();
-        
-    	StringWriter w = new StringWriter();
+*/
+        StringWriter w = new StringWriter();
     	YamlWriter writer = new YamlWriter(w);
+    	writer.getConfig().setPropertyElementType(GovTrackEntry.class, "terms", GovTrackTerm.class);
+    	writer.getConfig().setPropertyElementType(GovTrackEntry.class, "other_names", GovTrackOtherName.class);
+    	writer.getConfig().setPropertyElementType(GovTrackEntry.class, "leadership_roles", GovTrackLeadershipRole.class);
     	writer.write( listAcceptedEntries );
     	writer.close();
     	System.out.println(w);
     	
-    	*/
     }
 }
