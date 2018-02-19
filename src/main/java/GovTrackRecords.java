@@ -15,6 +15,14 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import model.Record;
 
+/**
+ * 
+ * Read the legislative historical and current files and save them.
+ * Convert to streams for processing.
+ * 
+ * @author Karl Nicholas
+ *
+ */
 public class GovTrackRecords implements AutoCloseable {
     private List<Record> records;
     private ObjectMapper objectMapper;
@@ -48,5 +56,7 @@ public class GovTrackRecords implements AutoCloseable {
             inputStream.close();
         }
     }
-    
+    ObjectMapper getObjectMapper( ) {
+        return objectMapper;
+    }
 }
