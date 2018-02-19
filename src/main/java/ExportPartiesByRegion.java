@@ -1,249 +1,159 @@
+
+import static java.util.stream.Collectors.*;
+
 import java.io.BufferedWriter;
 import java.io.FileWriter;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
+import java.time.LocalDate;
 import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.Function;
+import java.util.stream.IntStream;
 
-import model.GovTrackEntry;
-import model.GovTrackTerm;
+import model.Term;
 
-import com.esotericsoftware.yamlbeans.YamlReader;
-
-import filter.GovTrackDateFilter;
-import filter.GovTrackFilter;
-
-/**
- * 
- * @author Karl Nicholas
- * 
- * This program will parse the GovTrack legislators file and export a CSV file.
- * The CSV file will contain the count of democrats and republicans for
- * each congressional session starting in 1960. The counts will be 
- * summed for each region of the US, as defined by the US Census Bureau.
- * The CSV file can be imported into Excel or SPSS.
- *   
- *
- */
-public class ExportPartiesByRegion
-{
-    private static SimpleDateFormat dformat = new SimpleDateFormat("yyyy-MM-dd");
-    private static int START_YEAR = 1960;
-    private static int END_YEAR = 2013;
+public class ExportPartiesByRegion {
     private static String OUTPUT_FILE = "reps.txt";
-    private static String[] west = new String[] { "AK", "AZ", "CA", "CO", "HI", "ID", "MT", "NM", "NV", "OR", "UT", "WA", "WY" };;
-    private static String[] south = new String[] { "AL", "AR", "DC", "DE", "FL", "GA", "KY", "LA", "MD", "MS", "NC", "OK", "SC", "TN", "TX", "VA", "WV" };;
-    private static String[] ne = new String[] { "CT", "MA", "ME", "NH", "NJ", "NY", "PA", "RI", "VT" };;
-    private static String[] mw = new String[] { "IA", "IL", "IN", "KS", "MI", "MN", "MO", "ND", "NE", "OH", "SD", "WI" };;
+    String[] regions = {"Northeast", "South", "Midwest", "West" };
     
-    @SuppressWarnings("unchecked")
-	public static void main(String[] args) throws Exception {
-    	// see if any commandline args. not tested.
-        if (args.length == 3) {
-            try {
-                ExportPartiesByRegion.START_YEAR = Integer.parseInt(args[0]);
-                ExportPartiesByRegion.END_YEAR = Integer.parseInt(args[1]);
-                ExportPartiesByRegion.OUTPUT_FILE = args[2];
-            }
-            catch (Exception e) {
-                System.out.println("Usage: java ExportPartiesByRegion START_YEAR END_YEAR OUTPUT_FILE");
-                return;
-            }
-        }
-        // create dates for the a GovTrackDateFilter
-        Date filterStartDate = new GregorianCalendar(ExportPartiesByRegion.START_YEAR, 0, 3).getTime();
-        Date filterEndDate = new GregorianCalendar(ExportPartiesByRegion.END_YEAR, 11, 31).getTime();
-      
-        // the both of the legislators files
-        YamlReader reader = new YamlReader(new InputStreamReader(ExportPartiesByRegion.class.getResourceAsStream("legislators-historical.yaml")));
-        ArrayList<Map<String, ?>> list = (ArrayList<Map<String, ?>>)reader.read();
-        reader.close();
-        reader = new YamlReader(new InputStreamReader(ExportPartiesByRegion.class.getResourceAsStream("legislators-current.yaml")));
-        list.addAll( (ArrayList<Map<String, ?>>)reader.read() );
-        reader.close();
+    private static String[][] stateByRegion = {{ "CT", "MA", "ME", "NH", "NJ", "NY", "PA", "RI", "VT" }, 
+        { "AL", "AR", "DC", "DE", "FL", "GA", "KY", "LA", "MD", "MS", "NC", "OK", "SC", "TN", "TX", "VA", "WV" }, 
+        { "AK", "AZ", "CA", "CO", "HI", "ID", "MT", "NM", "NV", "OR", "UT", "WA", "WY" }, 
+        { "IA", "IL", "IN", "KS", "MI", "MN", "MO", "ND", "NE", "OH", "SD", "WI"} };
+    
+    public static void main(String[] args) throws Exception {
+        new ExportPartiesByRegion().run(1960);
+    }
+    // create a class to hold information for each congressional seat
 
-        // create a filter from the start and end dates
-        GovTrackFilter filter = new GovTrackDateFilter(filterStartDate, filterEndDate, null);
-        
-        // filter the original GovTrack files. This just gives less data to process later
-        ArrayList<GovTrackEntry> listAcceptedEntries = new ArrayList<GovTrackEntry>();
-        for (Map<String, ?> map : list) {
-            filter.doFilter(listAcceptedEntries, new GovTrackEntry(map));
-        }
-
-        // strip out the GovTrackTerms from the filtered results. They have all that is needed
-        ArrayList<GovTrackTerm> listTerms = new ArrayList<GovTrackTerm>();
-        for (GovTrackEntry entry : listAcceptedEntries) {
-            for (GovTrackTerm term : entry.getTerms()) {
-                listTerms.add(term);
-            }
-        }
-
-        // create a class to hold information for each congressional seat
-        class Seat
-        {
+    private void run(final int from) throws Exception {
+        // create a class to hold legislative seats
+        class Seat {
             String key;
             String year;
             String state;
             String party;
-        }
-
-        // use a TreeMap to hold the seats and eleminate duplicates
-        TreeMap<String, Seat> mapSeats = new TreeMap<String, Seat>();
-        
-        // session and GovTrackTerm date ranges
-        GregorianCalendar sessDateStart = new GregorianCalendar(ExportPartiesByRegion.START_YEAR, 0, 4);
-        GregorianCalendar sessDateEnd = new GregorianCalendar();
-        GregorianCalendar termStart = new GregorianCalendar();
-        GregorianCalendar termEnd = new GregorianCalendar();
-
-        // loop over congressional sessions
-        while (sessDateStart.get(Calendar.YEAR) <= ExportPartiesByRegion.END_YEAR) {
-
-        	// set the current session end date
-        	sessDateEnd.setTime(sessDateStart.getTime());
-            sessDateEnd.set(Calendar.MONTH, Calendar.DECEMBER);
-            sessDateEnd.set(Calendar.DAY_OF_MONTH, 31);
-
-            // loop over the list of accepted terms
-            for (GovTrackTerm term2 : listTerms) {
-
-            	// parse the term dates into java dates
-            	termStart.setTime(ExportPartiesByRegion.dformat.parse(term2.getStart()));
-                termEnd.setTime(ExportPartiesByRegion.dformat.parse(term2.getEnd()));
-
-                // test to see if the congressional session and GovTrack term dates overlap
-                if (termStart.compareTo(sessDateEnd) <= 0 && sessDateStart.compareTo(termEnd) <= 0) {
-                	// get all the needed information from the current GovTrackTerm
-                    String state = term2.getState();
-                    String party = term2.getParty();
-                    String type = term2.getType();
-                    String district = term2.getDistrict();
-                    String gClass = term2.getGclass();
-                    String sYear = Integer.toString(sessDateStart.get(1));
-                    Seat seat = new Seat();
-                    // create a unique key for the seeat
-                    if (term2.getType().equals("sen")) {
-                        seat.key = "" + sYear + type + state + gClass;
-                    }
-                    else {
-                        seat.key = "" + sYear + district + state;
-                    }
-                    // put the seat into the map
-                    seat.year = sYear;
-                    seat.state = state;
-                    seat.party = party;
-                    // overwriting any duplicates that may occur
-                    mapSeats.put(seat.key, seat);
+            Seat(Term term, int iYear) {
+                // get all the needed information from the current GovTrackTerm
+                state = term.getState();
+                party = term.getParty();
+                year = Integer.toString(iYear);
+                String type = term.getType();
+                // create a unique key for the seat
+                if (type.equals("sen")) {
+                    key = new StringBuilder(32).append(year).append(type).append(state).append(term.getClassField()).toString();
+                } else {
+                    key = new StringBuilder(32).append(year).append(term.getDistrict()).append(state).toString();
                 }
+                // put the seat into the map
             }
-            // increments session date to the next year.
-            sessDateStart.set(Calendar.YEAR, sessDateStart.get(Calendar.YEAR) + 1);
         }
-
         // create a class to count parties
-        class Counts
-        {
-            int totalDem = 0;
-            int totalRep = 0;
+        class Counts { int totalDem = 0; int totalRep = 0;
+
+            public void add(Counts c) {totalDem += c.totalDem; totalRep+=c.totalRep;} 
         }
-        
-        // create maps to hold the counts for each region by year
-        TreeMap<Integer, Counts> mapW = new TreeMap<Integer, Counts>();
-        TreeMap<Integer, Counts> mapS = new TreeMap<Integer, Counts>();
-        TreeMap<Integer, Counts> mapNE = new TreeMap<Integer, Counts>();
-        TreeMap<Integer, Counts> mapMW = new TreeMap<Integer, Counts>();
-        TreeMap<Integer, Counts> mapOther = new TreeMap<Integer, Counts>();
-        
-        // loop over the list of seats
-        for (String key : mapSeats.keySet()) {
-            Seat seat2 = mapSeats.get(key);
-            // determine region for this seat
-            String region = getRegion(seat2.state);
-            // assign the correct map
-            TreeMap<Integer, Counts> mapRef;
-            if (region.equals("West")) {
-                mapRef = mapW;
-            }
-            else if (region.equals("South")) {
-                mapRef = mapS;
-            }
-            else if (region.equals("Midwest")) {
-                mapRef = mapMW;
-            }
-            else if (region.equals("Northeast")) {
-                mapRef = mapNE;
-            }
-            else {
-                mapRef = mapOther;
-            }
-            // create a session year key for map
-            Integer iYear = Integer.valueOf(seat2.year);
-            // get the count object if it exists or create a new one
-            Counts Counts;
-            if (mapRef.containsKey(iYear)) {
-                Counts = mapRef.get(iYear);
-            }
-            else {
-                Counts = new Counts();
-            }
-            // count dem's or republicans
-            if (seat2.party.equals("Democrat")) {
-                Counts counts = Counts;
-                ++counts.totalDem;
-            }
-            else {
-                Counts counts2 = Counts;
-                ++counts2.totalRep;
-            }
-            // add/update count in map
-            mapRef.put(iYear, Counts);
-        }
-        
-        // write the results to a CSV file
-        PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(ExportPartiesByRegion.OUTPUT_FILE)));
-        out.println("Year, NEDems, NEReps, SDems, SReps, MWDems, MWReps, WDems, WReps, ODems, OReps");
-        
-        for (Integer iYear2 : mapW.keySet()) {
-            Counts CountsNE = mapNE.get(iYear2);
-            Counts CountsS = mapS.get(iYear2);
-            Counts CountsMW = mapMW.get(iYear2);
-            Counts CountsW = mapW.get(iYear2);
-            Counts CountsO = mapOther.get(iYear2);
+
+        // session and GovTrackTerm date ranges
+
+        final LocalDate termDateStart = LocalDate.of(from, 1, 1);
+        final LocalDate now = LocalDate.of(2014, 1, 1);
+
+        try (GovTrackRecords govTrackRecords = new GovTrackRecords(
+                GovTrackFilterExample.class.getResourceAsStream("/legislators-historical.yaml"),
+                GovTrackFilterExample.class.getResourceAsStream("/legislators-current.yaml"))) {
             
-            out.print("" + iYear2 + "," + CountsNE.totalDem + "," + CountsNE.totalRep + "," + CountsS.totalDem + "," + CountsS.totalRep + "," + CountsMW.totalDem + "," + CountsMW.totalRep + "," + CountsW.totalDem + "," + CountsW.totalRep + ",");
+            List<Term> terms = govTrackRecords.stream().flatMap(r -> r.getTerms().stream())
+                .filter(t -> termDateStart.isBefore(t.getEnd()) && t.getStart().isBefore(now))
+                .collect(toList());
+
+            // use a Map to hold the Seats
+            Map<String, Seat> mapSeats = new HashMap<String, Seat>();
             
-            if (CountsO != null) {
-                out.println(CountsO.totalDem + "," + CountsO.totalRep);
-            }
-            else {
-                out.println(",");
-            }
+            IntStream.range(from+1, 2014)
+            .mapToObj(y->LocalDate.of(y,1,1))
+            .forEach(sessDate->{
+                // run through the list of accepted terms
+                terms.parallelStream()
+                .filter(term->term.getStart().isBefore(sessDate) && sessDate.isBefore(term.getEnd()))
+                .map(term->{ return new Seat(term, sessDate.getYear()-1);})
+                .forEach(seat->mapSeats.put(seat.key, seat));
+            });
+
+            final Function<String, String> getRegion = state-> {
+                for ( int i=0; i < stateByRegion.length; ++i ) {
+                    if (Arrays.binarySearch(stateByRegion[i], state) >= 0) {
+                        return regions[i];
+                    }
+                }
+                return "";
+            };
+
+            Map<String, Map<Integer, Counts>> regionByYearByCount = mapSeats.values().stream()
+            .collect(toMap(
+                    seat->{
+                        return getRegion.apply(seat.state);                        
+                    }, seat->{
+                        // start a map
+                        Map<Integer, Counts> map = new TreeMap<>();
+                        Counts counts = new Counts();
+                        if (seat.party.equals("Democrat")) {
+                            ++counts.totalDem;
+                        } else {
+                            ++counts.totalRep;
+                        }
+                        map.put(Integer.valueOf(seat.year), counts );
+                        return map;
+                    }, (t, u)->{
+                        // merge two Map<Integer, Counts> maps
+                        for ( Integer year: t.keySet() ) {
+                            Counts c = u.get(year);
+                            if ( c != null ) {
+                                t.get(year).add(c);
+                            }
+                        }
+                        for ( Integer year: u.keySet() ) {
+                            Counts c = t.get(year);
+                            if ( c == null ) {
+                                t.put(year, u.get(year));
+                            }
+                        }
+                        return t;
+                    },
+                    // supply new TreeMap
+                    TreeMap::new
+                    ));            
+
+            // write the results to a CSV file
+            PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(ExportPartiesByRegion.OUTPUT_FILE)));
+            out.println("Year, NEDems, NEReps, SDems, SReps, MWDems, MWReps, WDems, WReps, ODems, OReps");
+
+            IntStream.range(from, 2013).forEach(year->{
+                Counts CountsNE = regionByYearByCount.get(regions[0]).get(year);
+                Counts CountsS = regionByYearByCount.get(regions[1]).get(year);
+                Counts CountsMW = regionByYearByCount.get(regions[2]).get(year);
+                Counts CountsW = regionByYearByCount.get(regions[3]).get(year);
+                Map<Integer, Counts> map = regionByYearByCount.get("");                
+
+                out.print("" + year + "," + CountsNE.totalDem + "," + CountsNE.totalRep + "," + CountsS.totalDem + ","
+                        + CountsS.totalRep + "," + CountsMW.totalDem + "," + CountsMW.totalRep + "," + CountsW.totalDem
+                        + "," + CountsW.totalRep + ",");
+
+                if (map != null) {
+                    Counts countsO = map.get(year);
+                    if (countsO != null ) {
+                        out.println(countsO.totalDem + "," + countsO.totalRep);
+                    } else {
+                        out.println(",");
+                    }
+                }
+            });
+            out.close();
         }
-        out.close();
+
     }
 
-    // utility routine to lookup region
-    private static String getRegion(String state) {
-        if (Arrays.binarySearch(ExportPartiesByRegion.west, state) >= 0) {
-            return "West";
-        }
-        if (Arrays.binarySearch(ExportPartiesByRegion.south, state) >= 0) {
-            return "South";
-        }
-        if (Arrays.binarySearch(ExportPartiesByRegion.ne, state) >= 0) {
-            return "Northeast";
-        }
-        if (Arrays.binarySearch(ExportPartiesByRegion.mw, state) >= 0) {
-            return "Midwest";
-        }
-        return "";
-    }
-    
 }

@@ -1,83 +1,24 @@
-import java.io.InputStreamReader;
-import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.Map;
 
-import model.*;
+import static java.util.stream.Collectors.*;
 
-import com.esotericsoftware.yamlbeans.*;
+import java.util.List;
 
-import filter.*;
+import model.Record;
 
-/**
- * 
- * @author Karl Nicholas
- * 
- * This program does the basic minimal processing of the legislators 
- * files. It dumps out all congressional members with the 
- * last name of "brown" There is code at the end that 
- * prints the result in yaml format, but it is not the same
- * as the original legislators yaml format.  
- *
- */
-public class GovTrackFilterExample
-{
-    @SuppressWarnings("unchecked")
-	public static void main(String[] args) throws Exception {
+public class GovTrackFilterExample {
+    public static void main(String[] args) throws Exception {
+        new GovTrackFilterExample().run();
+    }
 
-    	// create a filter
-    	GovTrackFilter filter = new GovTrackFieldFilter("name.last", "brown", null);
-
-    	// check for command line input
-        if (args.length > 0) {
-            try {
-                GovTrackFilter oldFilter = null;
-                for (String aname : args) {
-                    filter = (oldFilter = new GovTrackFieldFilter("name.last", aname, oldFilter));
-                }
-            }
-            catch (Exception e) {
-                System.out.println("Usage: java -cp legislators.jar GovTrackFilterExample lastname lastname lastname ...");
-                return;
-           }
+    private void run() throws Exception {
+        try (GovTrackRecords govTrackRecords = new GovTrackRecords(
+                GovTrackFilterExample.class.getResourceAsStream("/legislators-historical.yaml"),
+                GovTrackFilterExample.class.getResourceAsStream("/legislators-current.yaml"))
+        ) {
+            List<Record> browns = govTrackRecords.stream()
+                .filter(r -> r.getName().getLast().equalsIgnoreCase("brown"))
+                .collect(toList());
+            System.out.println("Count: " + browns.size());
         }
-
-        // read the legislators files into memory
-        YamlReader reader = new YamlReader(new InputStreamReader(GovTrackFilterExample.class.getResourceAsStream("legislators-current.yaml")));
-        ArrayList<Map<String, ?>> list = (ArrayList<Map<String, ?>>)reader.read();
-        reader.close();
-//        reader = new YamlReader(new InputStreamReader(GovTrackFilterExample.class.getResourceAsStream("legislators-current.yaml")));
-//        list.addAll( (ArrayList<Map<String, ?>>)reader.read() );
-//        reader.close();
-
-        // create a result list
-        ArrayList<GovTrackEntry> listAcceptedEntries= new ArrayList<>();
-
-        // filter the legislators data
-        for (Map<String, ?> map : list) {
-            filter.doFilter(listAcceptedEntries, new GovTrackEntry(map));
-        }
-
-/*        
-        // print out each entry separately. 
-        // somewhat cleaner than System.out.println(listAcceptedEntries);
-        for ( GovTrackEntry govTrackEntry: listAcceptedEntries ) {
-        	System.out.println(govTrackEntry);
-        }
-*/
-        /*
-        YamlReader reader = new YamlReader(new InputStreamReader(GovTrackFilterExample.class.getResourceAsStream("test.yaml")));
-        ArrayList<GovTrackEntry> listAcceptedEntries = (ArrayList<GovTrackEntry>) reader.read();
-        reader.close();
-*/
-        StringWriter w = new StringWriter();
-    	YamlWriter writer = new YamlWriter(w);
-    	writer.getConfig().setPropertyElementType(GovTrackEntry.class, "terms", GovTrackTerm.class);
-    	writer.getConfig().setPropertyElementType(GovTrackEntry.class, "other_names", GovTrackOtherName.class);
-    	writer.getConfig().setPropertyElementType(GovTrackEntry.class, "leadership_roles", GovTrackLeadershipRole.class);
-    	writer.write( listAcceptedEntries );
-    	writer.close();
-    	System.out.println(w);
-    	
     }
 }
