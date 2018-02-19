@@ -60,7 +60,7 @@ public class ExportPartiesByRegion {
         // session and GovTrackTerm date ranges
 
         final LocalDate termDateStart = LocalDate.of(from, 1, 1);
-        final LocalDate now = LocalDate.of(2014, 1, 1);
+        final LocalDate now = LocalDate.of(2015, 1, 1);
 
         try (GovTrackRecords govTrackRecords = new GovTrackRecords(
                 GovTrackFilterExample.class.getResourceAsStream("/legislators-historical.yaml"),
@@ -73,11 +73,11 @@ public class ExportPartiesByRegion {
             // use a Map to hold the Seats
             Map<String, Seat> mapSeats = new HashMap<String, Seat>();
             
-            IntStream.range(from+1, 2014)
+            IntStream.range(from+1, 2014+1)
             .mapToObj(y->LocalDate.of(y,1,1))
             .forEach(sessDate->{
                 // run through the list of accepted terms
-                terms.parallelStream()
+                terms.stream()
                 .filter(term->term.getStart().isBefore(sessDate) && sessDate.isBefore(term.getEnd()))
                 .map(term->{ return new Seat(term, sessDate.getYear()-1);})
                 .forEach(seat->mapSeats.put(seat.key, seat));
@@ -93,45 +93,45 @@ public class ExportPartiesByRegion {
             };
 
             Map<String, Map<Integer, Counts>> regionByYearByCount = mapSeats.values().stream()
-            .collect(toMap(
-                    seat->{
-                        return getRegion.apply(seat.state);                        
-                    }, seat->{
-                        // start a map
-                        Map<Integer, Counts> map = new TreeMap<>();
-                        Counts counts = new Counts();
-                        if (seat.party.equals("Democrat")) {
-                            ++counts.totalDem;
-                        } else {
-                            ++counts.totalRep;
-                        }
-                        map.put(Integer.valueOf(seat.year), counts );
-                        return map;
-                    }, (t, u)->{
-                        // merge two Map<Integer, Counts> maps
-                        for ( Integer year: t.keySet() ) {
-                            Counts c = u.get(year);
-                            if ( c != null ) {
-                                t.get(year).add(c);
-                            }
-                        }
-                        for ( Integer year: u.keySet() ) {
-                            Counts c = t.get(year);
-                            if ( c == null ) {
-                                t.put(year, u.get(year));
-                            }
-                        }
-                        return t;
-                    },
-                    // supply new TreeMap
-                    TreeMap::new
-                    ));            
-
+                    .collect(toMap(
+                            seat->{
+                                return getRegion.apply(seat.state);                        
+                            }, seat->{
+                                // start a map
+                                Map<Integer, Counts> map = new TreeMap<>();
+                                Counts counts = new Counts();
+                                if (seat.party.equals("Democrat")) {
+                                    ++counts.totalDem;
+                                } else {
+                                    ++counts.totalRep;
+                                }
+                                map.put(Integer.valueOf(seat.year), counts );
+                                return map;
+                            }, (t, u)->{
+                                // merge two Map<Integer, Counts> maps
+                                Map<Integer, Counts> map = new TreeMap<>(t);
+                                for ( Integer year: map.keySet() ) {
+                                    Counts c = u.get(year);
+                                    if ( c != null ) {
+                                        map.get(year).add(c);
+                                    }
+                                }
+                                for ( Integer year: u.keySet() ) {
+                                    Counts c = map.get(year);
+                                    if ( c == null ) {
+                                        map.put(year, u.get(year));
+                                    }
+                                }
+                                return map;
+                            },
+                            // supply new TreeMap
+                            TreeMap::new
+                            ));            
             // write the results to a CSV file
             PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(ExportPartiesByRegion.OUTPUT_FILE)));
             out.println("Year, NEDems, NEReps, SDems, SReps, MWDems, MWReps, WDems, WReps, ODems, OReps");
 
-            IntStream.range(from, 2013).forEach(year->{
+            for ( int year=from; year<=2013; ++year) {
                 Counts CountsNE = regionByYearByCount.get(regions[0]).get(year);
                 Counts CountsS = regionByYearByCount.get(regions[1]).get(year);
                 Counts CountsMW = regionByYearByCount.get(regions[2]).get(year);
@@ -150,7 +150,7 @@ public class ExportPartiesByRegion {
                         out.println(",");
                     }
                 }
-            });
+            };
             out.close();
         }
 
