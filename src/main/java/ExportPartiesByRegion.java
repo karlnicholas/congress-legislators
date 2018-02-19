@@ -109,20 +109,19 @@ public class ExportPartiesByRegion {
                                 return map;
                             }, (t, u)->{
                                 // merge two Map<Integer, Counts> maps
-                                Map<Integer, Counts> map = new TreeMap<>(t);
-                                for ( Integer year: map.keySet() ) {
+                                for ( Integer year: t.keySet() ) {
                                     Counts c = u.get(year);
                                     if ( c != null ) {
-                                        map.get(year).add(c);
+                                        t.get(year).add(c);
                                     }
                                 }
                                 for ( Integer year: u.keySet() ) {
-                                    Counts c = map.get(year);
+                                    Counts c = t.get(year);
                                     if ( c == null ) {
-                                        map.put(year, u.get(year));
+                                        t.put(year, u.get(year));
                                     }
                                 }
-                                return map;
+                                return t;
                             },
                             // supply new TreeMap
                             TreeMap::new
