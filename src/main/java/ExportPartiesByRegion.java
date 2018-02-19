@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 
@@ -37,7 +38,7 @@ public class ExportPartiesByRegion {
         { "AK", "AZ", "CA", "CO", "HI", "ID", "MT", "NM", "NV", "OR", "UT", "WA", "WY" } };
     
     // create a class to hold information for each congressional seat
-    private class Seat {
+    private final class Seat {
         String key, year, state, party;
         Seat(Term term, int iYear) {
             // get all the needed information from the current GovTrackTerm
@@ -55,7 +56,7 @@ public class ExportPartiesByRegion {
         }
     }
     // create a class to count parties
-    private class Counts { 
+    private final class Counts { 
         int totalDem = 0, totalRep = 0;
         public Counts(String party) {
             if (party.equals("Democrat")) {
@@ -63,17 +64,43 @@ public class ExportPartiesByRegion {
             } else {
                 ++totalRep;
             }
+        }
+        public void add(Counts c) {
+            totalDem += c.totalDem; 
+            totalRep += c.totalRep;
+        } 
     }
-        public void add(Counts c) {totalDem += c.totalDem; totalRep+=c.totalRep;} 
-    }
-    final Function<String, String> getRegion = state-> {
+    // function to find the region for a seat 
+    final Function<Seat, String> getRegion = seat-> {
         for ( int i=0; i < stateByRegion.length; ++i ) {
-            if (Arrays.binarySearch(stateByRegion[i], state) >= 0) {
+            if (Arrays.binarySearch(stateByRegion[i], seat.state) >= 0) {
                 return regions[i];
             }
         }
         // if not found return "Other" for territories 
         return regions[4];
+    };
+    // function to start a map of year by counts
+    final Function<Seat, Map<Integer, Counts>> mapYearByCounts = seat-> {
+        Map<Integer, Counts> map = new TreeMap<>();
+        map.put(Integer.valueOf(seat.year), new Counts(seat.party));
+        return map;
+    };
+    // operator to merge two Map<Integer, Counts> maps 
+    final BinaryOperator<Map<Integer, Counts>> mergeYearByCountsMaps = (t,u) -> {
+        for ( Integer year: t.keySet() ) {
+            Counts c = u.get(year);
+            if ( c != null ) {
+                t.get(year).add(c);
+            }
+        }
+        for ( Integer year: u.keySet() ) {
+            Counts c = t.get(year);
+            if ( c == null ) {
+                t.put(year, u.get(year));
+            }
+        }
+        return t;
     };
     
     public static void main(String[] args) throws Exception {
@@ -109,35 +136,8 @@ public class ExportPartiesByRegion {
             });
 
             // create a map that holds counts for each year for each region
-            Map<String, Map<Integer, Counts>> regionByYearByCount = mapSeats.values().stream()
-            .collect(toMap(
-                seat->{
-                    // get region for state for key
-                    return getRegion.apply(seat.state);                        
-                }, seat->{
-                    // start a map for each value
-                    Map<Integer, Counts> map = new TreeMap<>();
-                    map.put(Integer.valueOf(seat.year), new Counts(seat.party));
-                    return map;
-                }, (t, u)->{
-                    // merge two Map<Integer, Counts> maps
-                    for ( Integer year: t.keySet() ) {
-                        Counts c = u.get(year);
-                        if ( c != null ) {
-                            t.get(year).add(c);
-                        }
-                    }
-                    for ( Integer year: u.keySet() ) {
-                        Counts c = t.get(year);
-                        if ( c == null ) {
-                            t.put(year, u.get(year));
-                        }
-                    }
-                    return t;
-                },
-                // supply new TreeMap to start
-                TreeMap::new
-                ));            
+            Map<String, Map<Integer, Counts>> groupRegionByYearByCounts = mapSeats.values().stream()
+            .collect( toMap(getRegion, mapYearByCounts, mergeYearByCountsMaps, TreeMap::new) );            
 
             // write the results to a CSV file
             try ( PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(ExportPartiesByRegion.OUTPUT_FILE))) ) {
@@ -145,18 +145,18 @@ public class ExportPartiesByRegion {
     
                 for ( int year=from; year<=to; ++year) {
                     // for each year get region totals
-                    Counts CountsNE = regionByYearByCount.get(regions[0]).get(year);
-                    Counts CountsS = regionByYearByCount.get(regions[1]).get(year);
-                    Counts CountsMW = regionByYearByCount.get(regions[2]).get(year);
-                    Counts CountsW = regionByYearByCount.get(regions[3]).get(year);
-                    Map<Integer, Counts> map = regionByYearByCount.get("");                
+                    Counts CountsNE = groupRegionByYearByCounts.get(regions[0]).get(year);
+                    Counts CountsS = groupRegionByYearByCounts.get(regions[1]).get(year);
+                    Counts CountsMW = groupRegionByYearByCounts.get(regions[2]).get(year);
+                    Counts CountsW = groupRegionByYearByCounts.get(regions[3]).get(year);
+                    Map<Integer, Counts> mapOther = groupRegionByYearByCounts.get(regions[4]);                
     
                     out.print("" + year + "," + CountsNE.totalDem + "," + CountsNE.totalRep + "," + CountsS.totalDem + ","
                             + CountsS.totalRep + "," + CountsMW.totalDem + "," + CountsMW.totalRep + "," + CountsW.totalDem
                             + "," + CountsW.totalRep + ",");
     
-                    if (map != null) {
-                        Counts countsO = map.get(year);
+                    if (mapOther != null) {
+                        Counts countsO = mapOther.get(year);
                         if (countsO != null ) {
                             out.println(countsO.totalDem + "," + countsO.totalRep);
                         } else {
