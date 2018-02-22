@@ -22,8 +22,8 @@ graph. See reps.txt and reps.xlsx.
 	
 3: 	The project needs at least JDK version 8.
 
-4:	You will need to get the legislators-historical.yaml and 
-	the legislators-current.yaml files and put them into 
+4:	You will need to get the `legislators-historical.yaml` and 
+	the `legislators-current.yaml` files and put them into 
 	the src/main/resources directory.
 	
 5:      Instantiate `GovTrackRecords` and then call the `.stream()` method.  
