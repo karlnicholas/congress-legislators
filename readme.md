@@ -32,12 +32,12 @@ graph. See reps.txt and reps.xlsx.
 	which is in the src/main/java directory.
 	
 	a. GovTrackFilterExample: This program reads the data
-	and does an simple filter by lastname and prints out the count
+	and does an simple filter by lastname and prints out the count. 
+	It shows a simple and not too complicated example of working with 
+	the Java Beans. See the comments in the file for more information.
 	
 	b. ExportPartiesByRegion: This is the program that 
-	created reps.txt. It shows a good and not too complicated
-	example of working with the Java Beans. See the comments
-	in the file for more information.
+	created reps.txt which was used to create the reps.xlsx
 	
 7:	Packages are: 
 	a. model: has the java beans for each of the different GovTrack data nodes.
