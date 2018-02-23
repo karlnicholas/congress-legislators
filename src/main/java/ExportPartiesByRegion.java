@@ -57,12 +57,18 @@ public class ExportPartiesByRegion {
     }
     // create a class to count parties
     private final class Counts { 
-        int totalDem = 0, totalRep = 0;
+        int totalDem = 0, totalRep = 0, totalOther = 0;
         public Counts(String party) {
-            if (party.equals("Democrat")) {
-                ++totalDem;
+            if ( party != null ) {
+                if (party.equals("Democrat")) {
+                    ++totalDem;
+                } else if (party.equals("Republican")) {
+                    ++totalRep;
+                } else {
+                    ++totalOther;
+                }
             } else {
-                ++totalRep;
+                ++totalOther;
             }
         }
         public void add(Counts c) {
@@ -145,24 +151,28 @@ public class ExportPartiesByRegion {
     
                 for ( int year=from; year<=to; ++year) {
                     // for each year get region totals
-                    Counts CountsNE = groupRegionByYearByCounts.get(regions[0]).get(year);
-                    Counts CountsS = groupRegionByYearByCounts.get(regions[1]).get(year);
-                    Counts CountsMW = groupRegionByYearByCounts.get(regions[2]).get(year);
-                    Counts CountsW = groupRegionByYearByCounts.get(regions[3]).get(year);
-                    Map<Integer, Counts> mapOther = groupRegionByYearByCounts.get(regions[4]);                
+                    Map<Integer, Counts> yearMap = groupRegionByYearByCounts.get(regions[0]);
+                    Counts CountsNE = 
+                        yearMap == null ? new Counts(null) : yearMap.get(year) == null ? new Counts(null) : yearMap.get(year);
+                    yearMap = groupRegionByYearByCounts.get(regions[1]);
+                    Counts CountsS = 
+                        yearMap == null ? new Counts(null) : yearMap.get(year) == null ? new Counts(null) : yearMap.get(year);
+                    yearMap = groupRegionByYearByCounts.get(regions[2]);
+                    Counts CountsMW = 
+                        yearMap == null ? new Counts(null) : yearMap.get(year) == null ? new Counts(null) : yearMap.get(year);
+                    yearMap = groupRegionByYearByCounts.get(regions[3]);
+                    Counts CountsW = 
+                        yearMap == null ? new Counts(null) : yearMap.get(year) == null ? new Counts(null) : yearMap.get(year);
+                    yearMap = groupRegionByYearByCounts.get(regions[4]);
+                    Counts countsO = 
+                        yearMap == null ? new Counts(null) : yearMap.get(year) == null ? new Counts(null) : yearMap.get(year);
     
-                    out.print("" + year + "," + CountsNE.totalDem + "," + CountsNE.totalRep + "," + CountsS.totalDem + ","
-                            + CountsS.totalRep + "," + CountsMW.totalDem + "," + CountsMW.totalRep + "," + CountsW.totalDem
-                            + "," + CountsW.totalRep + ",");
-    
-                    if (mapOther != null) {
-                        Counts countsO = mapOther.get(year);
-                        if (countsO != null ) {
-                            out.println(countsO.totalDem + "," + countsO.totalRep);
-                        } else {
-                            out.println(",");
-                        }
-                    }
+                    out.println("" + year + "," 
+                        + CountsNE.totalDem + "," + CountsNE.totalRep + "," 
+                        + CountsS.totalDem + "," + CountsS.totalRep + "," 
+                        + CountsMW.totalDem + "," + CountsMW.totalRep + "," 
+                        + CountsW.totalDem + "," + CountsW.totalRep + "," 
+                        + countsO.totalDem + "," + countsO.totalRep );
                 };
                 // close file
                 out.close();
