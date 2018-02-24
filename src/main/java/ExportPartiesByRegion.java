@@ -74,6 +74,7 @@ public class ExportPartiesByRegion {
         public void add(Counts c) {
             totalDem += c.totalDem; 
             totalRep += c.totalRep;
+            totalOther += c.totalOther;
         } 
     }
     // function to find the region for a seat 
