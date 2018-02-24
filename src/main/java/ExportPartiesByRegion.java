@@ -144,7 +144,7 @@ public class ExportPartiesByRegion {
 
             // create a map that holds counts for each year for each region
             Map<String, Map<Integer, Counts>> groupRegionByYearByCounts = mapSeats.values().stream()
-            .collect( toMap(getRegion, mapYearByCounts, mergeYearByCountsMaps, TreeMap::new) );            
+            .collect( toMap(getRegion, mapYearByCounts, mergeYearByCountsMaps, TreeMap::new) );
 
             // write the results to a CSV file
             try ( PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(ExportPartiesByRegion.OUTPUT_FILE))) ) {
